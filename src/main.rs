@@ -1,3 +1,4 @@
+// main.rs: argparsing
 
 // Parse out all images that are not arguments
 fn parse_images(args: &mut Vec<String>) -> Vec<String> {
@@ -28,5 +29,6 @@ fn main() {
     // parse the program args
     let mut args: Vec<String> = std::env::args().collect();
     args.remove(0); // skip the program name
-    let imgs: Vec<String> = parse_images(&mut args);
+    let imgs: Vec<String> = parse_images(&mut args); // remove imgs from args
+
 }
