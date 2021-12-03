@@ -1,6 +1,7 @@
 // main.rs: argparsing
 
 mod imgload;
+mod deviant;
 
 // Parse out all images that are not arguments
 fn parse_images(args: &mut Vec<String>) -> Vec<String> {
@@ -33,5 +34,8 @@ fn main() {
     args.remove(0); // skip the program name
     let imgs: Vec<String> = parse_images(&mut args); // remove imgs from args
     let size = imgload::find_largest_resolution(&imgs);
-    println!("{:?}", size);
+    if size.0 == 0 || size.1 == 0 {
+        panic!("all the images input are invalid!");
+    }
+
 }
