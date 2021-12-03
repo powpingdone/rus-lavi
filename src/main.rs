@@ -1,5 +1,7 @@
 // main.rs: argparsing
 
+mod imgload;
+
 // Parse out all images that are not arguments
 fn parse_images(args: &mut Vec<String>) -> Vec<String> {
     let mut imgs: Vec<String> = Vec::new();
@@ -30,5 +32,6 @@ fn main() {
     let mut args: Vec<String> = std::env::args().collect();
     args.remove(0); // skip the program name
     let imgs: Vec<String> = parse_images(&mut args); // remove imgs from args
-
+    let size = imgload::find_largest_resolution(&imgs);
+    println!("{:?}", size);
 }
