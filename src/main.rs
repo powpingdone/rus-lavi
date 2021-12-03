@@ -37,5 +37,5 @@ fn main() {
     if size.0 == 0 || size.1 == 0 {
         panic!("all the images input are invalid!");
     }
-
+    let image = deviant::least_average_arr(imgs, size);
 }

@@ -8,16 +8,18 @@ pub fn find_largest_resolution(imgs: &Vec<String>) -> (u32, u32) {
     imgs.iter().map(|img_name| {
         let image_in = image::image_dimensions(img_name);
         if let Ok(image_good) = image_in {
-            return image_good;
+            image_good
+        } else {
+            (0, 0)
         }
-        (0, 0)
     })
     // this fold will then find the highest
     // resolution by comparing dimentions
     .fold((0, 0), |highest_res, res| {
         if res.0 > highest_res.0 && res.1 > highest_res.1 {
-            return res;
+            res
+        } else {
+            highest_res
         }
-        highest_res
     })
 }
