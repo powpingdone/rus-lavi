@@ -33,9 +33,12 @@ fn main() {
     let mut args: Vec<String> = std::env::args().collect();
     args.remove(0); // skip the program name
     let imgs: Vec<String> = parse_images(&mut args); // remove imgs from args
-    let size = imgload::find_largest_resolution(&imgs);
+    let (size, poss_largest) = imgload::find_largest_resolution(&imgs);
     if size.0 == 0 || size.1 == 0 {
         panic!("all the images input are invalid!");
     }
-    let image = deviant::least_average_arr(imgs, size);
+
+    if let Ok(largest_image) = poss_largest {
+        let image = deviant::least_average_arr(&imgs, &size, &largest_image);
+    }
 }
