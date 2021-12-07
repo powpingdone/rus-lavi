@@ -60,7 +60,7 @@ pub fn open_image<'a>(img: &'a String, size: &'a(u32, u32), verbose: bool) -> Re
         return Err(imgerr.to_string());
     }
     let img_object = img_object.unwrap()
-        .resize_exact(size.0, size.1, image::imageops::FilterType::Nearest);
+        .resize_exact(size.0, size.1, image::imageops::FilterType::Lanczos3);
     let mut ret: Vec<(u8, u8, u8)> = Vec::new();
     for pixel in img_object.into_rgb8().pixels() {
         let pix = pixel.channels4();
