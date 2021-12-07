@@ -13,10 +13,13 @@ fn main() {
         panic!("no file to output to specified")
     }
 
+    // find largest resolution for basis image
     let (size, poss_largest) = imgload::find_largest_resolution(&imgs, args.verbose.clone());
     if size.0 == 0 || size.1 == 0 {
         panic!("all the images input are invalid!");
     }
+
+    // create the least average image and write it out
     if let Ok(largest_image) = poss_largest {
         let image = deviant::least_average_arr(&imgs, &size, &largest_image, args.verbose.clone());
         imgload::write_image(size, image, args.output.unwrap(), args.verbose.clone()).unwrap();
@@ -34,19 +37,27 @@ fn parse_images(args: &mut Vec<String>) -> Vec<String> {
 
     // get all the images and parse out the args
     for (x, arg) in args.iter().enumerate() {
+        // if arg has been hit earlier, skip its arguments
         if skip_amt > 0 {
             skip_amt -= 1;
             continue;
         }
 
+        // regular image
         if hit_double_hyphen || arg.chars().next().unwrap() != '-' {
             imgs.push(arg.to_string());
             rems.push(x);
-        } else if arg.chars().next().unwrap() == '-' {
+
+        }
+        // args
+        else if arg.chars().next().unwrap() == '-' {
+            // double hyphen does something special
             if arg == "--" {
                 hit_double_hyphen = true;
                 continue;
             }
+
+            // add amount to skip because iter is immutable
             for (name, skip) in skip_list.iter() {
                 if arg == name {
                     skip_amt = *skip;
@@ -54,7 +65,6 @@ fn parse_images(args: &mut Vec<String>) -> Vec<String> {
                 }
             }
         }
-
     }
 
     // remove the parsed images from the arg parser
@@ -89,6 +99,7 @@ fn arg_parse(parsed: Vec<String>) -> ParsedArgs {
         verbose: false,
     };
 
+    // update the struct with the args
     for pos in 0..parsed.len() {
         let tester = parsed[pos].as_str();
         match tester.chars().next().unwrap() {

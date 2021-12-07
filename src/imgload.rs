@@ -33,6 +33,7 @@ pub fn find_largest_resolution(imgs: &Vec<String>, verbose: bool) -> ((u32, u32)
             if let Ok(dims) = poss_dims {
                 if dims == size {
                    bub = Ok(img.to_string());
+                   break;
                 }
             }
         }
@@ -54,24 +55,36 @@ pub fn find_largest_resolution(imgs: &Vec<String>, verbose: bool) -> ((u32, u32)
 
 // create semi-flattened array from image
 pub fn open_image<'a>(img: &'a String, size: &'a(u32, u32), verbose: bool) -> Result<Vec<(u8, u8, u8)>, String> {
+    // try opening image
     if verbose { println!("opening img {}", img); }
     let img_object = image::open(img);
     if let Err(imgerr) = img_object {
         return Err(imgerr.to_string());
     }
-    let img_object = img_object.unwrap()
-        .resize_exact(size.0, size.1, image::imageops::FilterType::Lanczos3);
-    let mut ret: Vec<(u8, u8, u8)> = Vec::new();
-    for pixel in img_object.into_rgb8().pixels() {
-        let pix = pixel.channels4();
-        ret.push((pix.0, pix.1, pix.2));
-    }
-    Ok(ret)
+
+    // transform image into standard size
+    let img_object = {
+        let i = img_object.unwrap();
+        if image::image_dimensions(img).unwrap() != *size {
+            i.resize_exact(size.0, size.1, image::imageops::FilterType::Lanczos3)
+        }
+        else { i }
+    };
+
+    // return the object
+    Ok(
+        img_object.into_rgb8().pixels().map(|x| {
+            let pixel = x.channels4();
+            (pixel.0, pixel.1, pixel.2)
+        }).collect()
+    )
 }
 
 // writes out semi-flattened array
 pub fn write_image(size: (u32, u32), data: Vec<(u8, u8, u8)>, out: String, verbose: bool) -> Result<(), String> {
     if verbose { println!("writing out {}", out); }
+
+    // flatten array from (u8, u8, u8) to u8, u8, u8
     let mut flattened = Vec::new();
     for pixel in data {
         flattened.push(pixel.0);
@@ -79,6 +92,7 @@ pub fn write_image(size: (u32, u32), data: Vec<(u8, u8, u8)>, out: String, verbo
         flattened.push(pixel.2);
     }
 
+    // write out "raw data"
     if let Err(reterr) = image::save_buffer(out, &flattened, size.0, size.1, image::ColorType::Rgb8) {
         return Err(reterr.to_string());
     }
