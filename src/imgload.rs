@@ -1,11 +1,12 @@
 // imgload.rs: img handling tools
 
 extern crate image;
-use std::convert::TryInto;
+use image::Pixel;
 
-pub fn find_largest_resolution(imgs: &Vec<String>) -> ((u32, u32), Result<String, String>) {
-    // this first map gathers all image dimentions possible,
+pub fn find_largest_resolution(imgs: &Vec<String>, verbose: bool) -> ((u32, u32), Result<String, String>) {
+    // this first map gathers all image dimensions possible,
     // on error it will output a (0,0) tuple
+    if verbose {println!("checking {} images", imgs.len())};
     let size = imgs.iter().map(|img_name| {
         let image_in = image::image_dimensions(img_name);
         if let Ok(image_good) = image_in {
@@ -24,6 +25,7 @@ pub fn find_largest_resolution(imgs: &Vec<String>) -> ((u32, u32), Result<String
         }
     });
     // find the image itself
+    if verbose {println!("using size {}x{}", size.0, size.1);};
     (size, {
         let mut bub = Err("Cannot find image with resolution".to_string());
         for img in imgs.iter() {
@@ -34,21 +36,51 @@ pub fn find_largest_resolution(imgs: &Vec<String>) -> ((u32, u32), Result<String
                 }
             }
         }
+
+        if verbose {
+            println!("{}", {
+                if let Ok(ref bop) = bub {
+                    format!("found largest img: {}", bop)
+                }
+                else {
+                    format!("could not find largest image")
+                }
+            });
+        };
+
         bub
     })
 }
 
-// create flattened array from image
-pub fn open_image<'a>(img: &'a String, size: &'a(u32, u32)) -> Vec<(u8, u8, u8)> {
-    let img_object = image::open(img).unwrap()
-                .resize_exact(size.0, size.1, image::imageops::FilterType::Lanczos3);
-    let img = img_object.as_bytes();
-    let mut ret: Vec<(u8, u8, u8)> = Vec::new();
-    for x in 0..(size.0 * size.1){
-        let i: usize = x.try_into().unwrap();
-        let new_tuple: (u8, u8, u8) = (img[3*i].clone(), img[3*i+1].clone(), img[3*i+2].clone());
-        ret.push(new_tuple);
+// create semi-flattened array from image
+pub fn open_image<'a>(img: &'a String, size: &'a(u32, u32), verbose: bool) -> Result<Vec<(u8, u8, u8)>, String> {
+    if verbose { println!("opening img {}", img); }
+    let img_object = image::open(img);
+    if let Err(imgerr) = img_object {
+        return Err(imgerr.to_string());
     }
-    ret
+    let img_object = img_object.unwrap()
+        .resize_exact(size.0, size.1, image::imageops::FilterType::Nearest);
+    let mut ret: Vec<(u8, u8, u8)> = Vec::new();
+    for pixel in img_object.into_rgb8().pixels() {
+        let pix = pixel.channels4();
+        ret.push((pix.0, pix.1, pix.2));
+    }
+    Ok(ret)
 }
 
+// writes out semi-flattened array
+pub fn write_image(size: (u32, u32), data: Vec<(u8, u8, u8)>, out: String, verbose: bool) -> Result<(), String> {
+    if verbose { println!("writing out {}", out); }
+    let mut flattened = Vec::new();
+    for pixel in data {
+        flattened.push(pixel.0);
+        flattened.push(pixel.1);
+        flattened.push(pixel.2);
+    }
+
+    if let Err(reterr) = image::save_buffer(out, &flattened, size.0, size.1, image::ColorType::Rgb8) {
+        return Err(reterr.to_string());
+    }
+    Ok(())
+}
