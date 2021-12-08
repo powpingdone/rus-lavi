@@ -21,7 +21,7 @@ fn main() {
 
     // create the least average image and write it out
     if let Ok(largest_image) = poss_largest {
-        let image = deviant::least_average_arr(&imgs, &size, &largest_image, args.verbose.clone());
+        let image = deviant::least_average_arr(imgs, size, largest_image, args.verbose.clone());
         imgload::write_image(size, image, args.output.unwrap(), args.verbose.clone()).unwrap();
     }
 }

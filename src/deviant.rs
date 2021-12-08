@@ -3,25 +3,24 @@
 extern crate itertools;
 use crate::imgload;
 use itertools::multizip;
-use std::convert::TryInto;
 use linya::{Bar, Progress};
+use std::convert::TryInto;
 
 // computes the least average image
-pub fn least_average_arr<'a>(imgs: &'a Vec<String>, res: &'a(u32, u32), largest: &'a String, verbose: bool) -> Vec<(u8, u8, u8)> {
+pub fn least_average_arr(imgs: Vec<String>, res: (u32, u32), largest: String, verbose: bool) -> Vec<(u8, u8, u8)> {
     let mut img_main = imgload::open_image(&largest, &res, verbose.clone()).unwrap();
-    let length: usize = (res.0 * res.1).try_into().unwrap();
+    let length: u64 = u64::from(res.0) * u64::from(res.1);
     let mut dists: Vec<f64> = Vec::new();
-    dists.resize(length, 0.0);
+    dists.resize(length.try_into().unwrap(), 0.0);
 
     // main loop
+    let mut prog = Progress::new();
+    let bar: Bar = prog.bar(imgs.len(), "least average img");
     for img in imgs.iter() {
-        if img != largest {
+        if *img != largest {
             if let Ok(img_merge) = imgload::open_image(img, &res, verbose.clone()) {
-                let mut prog = Progress::new();
-                let bar: Bar = prog.bar(length, img);
-
                 // for each value in each vector
-                for (base, merge, dist, set) in multizip((img_main.iter_mut(), img_merge.iter(), dists.iter_mut(), 0..length)) {
+                for (base, merge, dist) in multizip((img_main.iter_mut(), img_merge.iter(), dists.iter_mut())) {
                     /*
                         distance formula is the "color ratio" where
                         merge = m -> the new image to use
@@ -44,10 +43,10 @@ pub fn least_average_arr<'a>(imgs: &'a Vec<String>, res: &'a(u32, u32), largest:
                         *base = *merge;
                         *dist = new_dist;
                     }
-                    prog.set_and_draw(&bar, set);
                 }
             }
         }
+        prog.inc_and_draw(&bar, 1);
     }
     img_main
 }
