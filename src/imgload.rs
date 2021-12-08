@@ -47,7 +47,7 @@ pub fn find_largest_resolution(imgs: &Vec<String>, verbose: bool) -> ((u32, u32)
                     format!("could not find largest image")
                 }
             });
-        };
+        }
 
         bub
     })
