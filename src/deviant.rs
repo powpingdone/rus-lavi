@@ -1,27 +1,44 @@
 // deviant.rs: the main logic for finding the least average image
 
-extern crate itertools;
 use crate::imgload;
 use itertools::multizip;
-use std::convert::TryInto;
 use linya::{Bar, Progress};
+use std::sync::{Arc, Mutex};
+use std::collections::VecDeque;
 
 // computes the least average image
-pub fn least_average_arr<'a>(imgs: &'a Vec<String>, res: &'a(u32, u32), largest: &'a String, verbose: bool) -> Vec<(u8, u8, u8)> {
-    let mut img_main = imgload::open_image(&largest, &res, verbose.clone()).unwrap();
-    let length: usize = (res.0 * res.1).try_into().unwrap();
-    let mut dists: Vec<f64> = Vec::new();
-    dists.resize(length, 0.0);
+pub fn least_average_img(imgs: Vec<String>, res: (u32, u32), largest: String, verbose: bool) -> Vec<(u8, u8, u8)> {
+    // setup mutex Vecs
+    let img_main: Vec<Mutex<(u8, u8, u8)>> =
+        imgload::open_image(&largest, &res, verbose.clone()).unwrap()
+        .iter().map(|x| Mutex::new(*x)).collect();
+
+    let img_length: u64 = u64::from(res.0) * u64::from(res.1);
+    let mut dists: Vec<Mutex<f64>> = Vec::new();
+    for _ in 0..img_length {
+        dists.push(Mutex::new(0.0));
+    }
+
+    // setup threads
+    let mut thread_pool = Vec::new();
+    let mut img_queue = VecDeque::from(imgs);
+    let prog = Mutex::new(Progress::new());
+    let bar: Bar = prog.lock().unwrap().bar(imgs.len(), "least averaging images");
+    for _ in 0..num_cpus::get() {
+        thread_pool.push(std::thread::spawn(|| {
+            while let Some(img) = img_queue.pop_front() {
+
+            }
+        }));
+    }
+
 
     // main loop
-    for img in imgs.iter() {
+    /*for img in imgs.iter() {
         if img != largest {
             if let Ok(img_merge) = imgload::open_image(img, &res, verbose.clone()) {
-                let mut prog = Progress::new();
-                let bar: Bar = prog.bar(length, img);
-
                 // for each value in each vector
-                for (base, merge, dist, set) in multizip((img_main.iter_mut(), img_merge.iter(), dists.iter_mut(), 0..length)) {
+                for (base, merge, dist, set) in multizip((img_main.iter(), img_merge.iter(), dists.iter(), 0..img_length)) {
                     /*
                         distance formula is the "color ratio" where
                         merge = m -> the new image to use
@@ -44,15 +61,19 @@ pub fn least_average_arr<'a>(imgs: &'a Vec<String>, res: &'a(u32, u32), largest:
                         *base = *merge;
                         *dist = new_dist;
                     }
-                    prog.set_and_draw(&bar, set);
                 }
             }
         }
-    }
-    img_main
+    }*/
+
+
+    // return non mutexed vec
+    img_main.iter().map(|x| x.lock().unwrap().clone()).collect()
 }
 
+fn least_avg_thread() {}
 
+// util function to divide but to not div by zero, instead dividing by one
 fn div_no_zero(dividend: &u8, divisor: &u8) -> f64 {
     let dividend: f64 = (*dividend).into();
     let full_div: f64 = (*divisor).into();
