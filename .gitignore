@@ -11,3 +11,4 @@ Cargo.lock
 
 # gnome builder
 .buildconfig
+*.goutputstream-*
