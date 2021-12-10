@@ -1,43 +1,92 @@
 // deviant.rs: the main logic for finding the least average image
 
-extern crate itertools;
 use crate::imgload;
 use itertools::multizip;
 use linya::{Bar, Progress};
+use std::sync::{Arc, Mutex};
+use std::collections::VecDeque;
 
 // computes the least average image
-pub fn least_average_arr(imgs: Vec<String>, res: (u32, u32), largest: String, verbose: bool) -> Vec<(u8, u8, u8)> {
-    let mut img_main = imgload::open_image(&largest, &res, verbose.clone()).unwrap();
-    let mut dists: Vec<f64> = Vec::new();
-    // compute initial distance
-    for pix in img_main.iter() {
-        dists.push(dist(&pix, &(127, 127, 127)));
+pub fn least_average_img(imgs: Vec<String>, res: (u32, u32), largest: String, verbose: bool) -> Vec<(u8, u8, u8)> {
+    // setup mutex Vecs
+    constrain_mem();
+    let img_main_master: Arc<Vec<Mutex<(u8, u8, u8)>>> = Arc::new(
+        {
+            let img = imgload::open_image(&largest, &res, verbose.clone()).unwrap();
+            img.iter().map(|x| Mutex::new(x.clone())).collect()
+        }
+    );
+
+    let mut dists_tmp: Vec<Mutex<f32>> = Vec::new();
+    for pix in img_main_master.clone().iter() {
+        dists_tmp.push(Mutex::new(dist(&pix.lock().unwrap(), &(127, 127, 127))));
     }
+    let dists_master: Arc<Vec<Mutex<f32>>> = Arc::new(dists_tmp);
 
-    // main loop
-    let mut prog = Progress::new();
-    let bar: Bar = prog.bar(imgs.len(), "least average img");
-    for img in imgs.iter() {
-        if *img != largest {
-            if let Ok(img_merge) = imgload::open_image(img, &res, verbose.clone()) {
-                // for each value in each vector
-                for (base, merge, old_dist) in multizip((img_main.iter_mut(), img_merge.iter(), dists.iter_mut())) {
-                    let new_dist: f64 = dist(merge, base);
+    // setup threads
+    let mut thread_pool = Vec::new();
+    let img_queue_master = Arc::new(Mutex::new(VecDeque::from(imgs)));
+    let prog = Arc::new(Mutex::new(Progress::new()));
+    let bar: Arc<Bar> = Arc::new(
+        prog.clone().lock().unwrap()
+        .bar(img_queue_master.clone().lock().unwrap().len(), "least averaging images")
+    );
 
-                    // update references
-                    if new_dist > *old_dist {
-                        *base = *merge;
-                        *old_dist = new_dist;
+    // run threads
+    for _ in 0..num_cpus::get_physical() {
+        // arc duplication boilerplate
+        let img_queue = img_queue_master.clone();
+        let img_main = img_main_master.clone();
+        let dists_master = dists_master.clone();
+        let self_bar = bar.clone();
+        let self_prog = prog.clone();
+        let largest_img = largest.clone(); // this clones the string, it is not atomic
+
+        // start thread
+        thread_pool.push(std::thread::spawn(move || {
+            loop {
+                let poss_img = { img_queue.lock().unwrap().pop_front() };
+                if let Some(img) = poss_img {
+                    if img != largest_img {
+                        if let Ok(img_loaded) = imgload::open_image(&img, &res, verbose.clone()) {
+                            least_avg_thread(&img_main, &dists_master, img_loaded);
+                        }
                     }
+                    self_prog.lock().unwrap().inc_and_draw(&self_bar, 1);
+                }
+                else {
+                    break;
                 }
             }
-        }
-        prog.inc_and_draw(&bar, 1);
+        }));
     }
-    img_main
+
+    // wait for them to finish processing
+    for t_join in thread_pool {
+        t_join.join().unwrap();
+    }
+
+    // return non mutexed vec
+    Arc::clone(&img_main_master).iter().map(|x| x.lock().unwrap().clone()).collect()
 }
 
-fn dist(merge: &(u8, u8, u8), base: &(u8, u8, u8)) -> f64 {
+// thread function
+fn least_avg_thread(img_main: &Vec<Mutex<(u8, u8, u8)>>, dists: &Vec<Mutex<f32>>, img: Vec<(u8, u8, u8)>) {
+    for (base, merge, old_dist) in multizip((img_main.iter(), img.iter(), dists.iter())) {
+        let mut old_dist = old_dist.lock().unwrap();
+        let mut base = base.lock().unwrap();
+        let new_dist = dist(&merge, &base);
+
+        // update references
+        if new_dist > *old_dist {
+            *base = *merge;
+            *old_dist = new_dist;
+        }
+    }
+}
+
+// distance function
+fn dist(merge: &(u8, u8, u8), base: &(u8, u8, u8)) -> f32 {
     /*
         distance formula is the "color ratio" where
         merge = m -> the new image to use
@@ -56,9 +105,23 @@ fn dist(merge: &(u8, u8, u8), base: &(u8, u8, u8)) -> f64 {
     ).sqrt()
 }
 
-fn div_no_zero(dividend: &u8, divisor: &u8) -> f64 {
-    let dividend: f64 = (*dividend).into();
-    let full_div: f64 = (*divisor).into();
+
+// util function to divide but to not div by zero, instead dividing by one
+fn div_no_zero(dividend: &u8, divisor: &u8) -> f32 {
+    let dividend: f32 = (*dividend).into();
+    let full_div: f32 = (*divisor).into();
     dividend / ( if *divisor == 0 {1.0} else {full_div} )
 }
 
+// glibc configuration to not eat ram like chrome
+#[cfg(target_os = "linux")]
+fn constrain_mem() {
+    extern crate libc;
+    unsafe {
+        libc::mallopt(libc::M_ARENA_MAX, 1);
+        libc::mallopt(libc::M_ARENA_TEST, 1);
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn constrain_mem() {}
