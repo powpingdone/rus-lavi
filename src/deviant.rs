@@ -114,7 +114,7 @@ fn div_no_zero(dividend: &u8, divisor: &u8) -> f32 {
     dividend / ( if *divisor == 0 {1.0} else {full_div} )
 }
 
-// glibc configuration to not eat ram like chrome
+// glibc configuration to not use a lot of ram
 #[cfg(target_os = "linux")]
 fn constrain_mem() {
     extern crate libc;
