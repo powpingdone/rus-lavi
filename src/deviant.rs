@@ -14,6 +14,7 @@ pub fn least_average_img(imgs: Vec<String>,
                          largest: String,
                          argstruct: Arc<args::ParsedArgs>)
                          -> Vec<(u8, u8, u8)> {
+
     // setup mutex Vecs
     constrain_mem();
     let img_main_master: Arc<Vec<Mutex<(u8, u8, u8)>>> = Arc::new(
@@ -39,7 +40,7 @@ pub fn least_average_img(imgs: Vec<String>,
     );
 
     // run threads
-    for _ in 0..num_cpus::get_physical() {
+    for _ in 0..argstruct.threads {
         // arc duplication boilerplate
         let img_queue = img_queue_master.clone();
         let img_main = img_main_master.clone();
@@ -74,7 +75,7 @@ pub fn least_average_img(imgs: Vec<String>,
     }
 
     // return non mutexed vec
-    Arc::clone(&img_main_master).iter().map(|x| x.lock().clone()).collect()
+    img_main_master.clone().iter().map(|x| x.lock().clone()).collect()
 }
 
 // thread function
@@ -118,8 +119,8 @@ fn dist(merge: &(u8, u8, u8), base: &(u8, u8, u8)) -> f32 {
 
 // util function to divide but to not div by zero, instead dividing by one
 fn div_no_zero(dividend: &u8, divisor: &u8) -> f32 {
-    let dividend: f32 = (*dividend).into();
-    let full_div: f32 = (*divisor).into();
+    let dividend: f32 = (*dividend) as f32;
+    let full_div: f32 = (*divisor) as f32;
     dividend / ( if *divisor == 0 {1.0} else {full_div} )
 }
 

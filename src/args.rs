@@ -1,5 +1,6 @@
 // args.rs: arg parsing
 
+extern crate num_cpus;
 use std::sync::Arc;
 
 // argument struct
@@ -7,6 +8,7 @@ pub struct ParsedArgs {
     pub output: Option<String>,
     pub verbose: bool,
     pub largest: Option<String>,
+    pub threads: usize
 }
 
 
@@ -16,6 +18,7 @@ pub fn arg_parse(parsed: Vec<String>) -> Arc<ParsedArgs> {
         output: None,
         verbose: false,
         largest: None,
+        threads: num_cpus::get(),
     };
 
     // update the struct with the args
@@ -27,8 +30,16 @@ pub fn arg_parse(parsed: Vec<String>) -> Arc<ParsedArgs> {
                     "-o" | "--output" => args.output = Some(parsed[pos + 1].clone()),
                     "-v" | "--verbose" => args.verbose = true,
                     "-b" | "--base" => args.largest = Some(parsed[pos + 1].clone()),
+                    "-T" | "--threads" => args.threads = {
+                        let thread_num: usize = parsed[pos + 1].parse::<usize>()
+                                             .expect("threads specified is not a number");
+                        if thread_num < 1 {
+                            panic!("threads to be used needs to be greater than 0 (ie, 1 or up)");
+                        }
+                        thread_num
+                    },
                     "--" => (),
-                    _ => panic!("invalid arg parsed"),
+                    _ => panic!("invalid arg \"{}\" parsed", tester),
                 },
             _ => ()
         }
@@ -45,5 +56,7 @@ pub fn arg_skip_list() -> Vec<(&'static str, u8)> {
     ret.push(("--output", 1));
     ret.push(("-b", 1));
     ret.push(("--base", 1));
+    ret.push(("-T", 1));
+    ret.push(("--threads", 1));
     ret
 }
