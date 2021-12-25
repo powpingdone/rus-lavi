@@ -60,7 +60,7 @@ pub fn least_average_img(imgs: Vec<String>,
                             least_avg_thread(&img_main, &dists_master, img_loaded);
                         }
                     }
-                    self_prog.lock().inc_and_draw(&self_bar, 1);
+                    if !argss.verbose { self_prog.lock().inc_and_draw(&self_bar, 1); }
                 }
                 else {
                     break;
@@ -97,7 +97,9 @@ fn least_avg_thread(img_main: &Vec<Mutex<(u8, u8, u8)>>,
 }
 
 // distance function
-fn dist(merge: &(u8, u8, u8), base: &(u8, u8, u8)) -> f32 {
+fn dist(merge: &(u8, u8, u8),
+        base: &(u8, u8, u8))
+        -> f32 {
     /*
         distance formula is the "color ratio" where
         merge = m -> the new image to use
@@ -118,10 +120,11 @@ fn dist(merge: &(u8, u8, u8), base: &(u8, u8, u8)) -> f32 {
 
 
 // util function to divide but to not div by zero, instead dividing by one
-fn div_no_zero(dividend: &u8, divisor: &u8) -> f32 {
-    let dividend: f32 = (*dividend) as f32;
-    let full_div: f32 = (*divisor) as f32;
-    dividend / ( if *divisor == 0 {1.0} else {full_div} )
+fn div_no_zero(dividend: &u8,
+               divisor: &u8)
+               -> f32 {
+
+    dividend as f32 / ( if *divisor == 0 { 1.0 } else { divisor as f32 } )
 }
 
 // glibc configuration to not use a lot of ram

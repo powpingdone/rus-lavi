@@ -19,7 +19,7 @@ pub fn find_largest_resolution(imgs: &Vec<String>,
     else {
         let size = largest_size(imgs, argstruct);
 
-        if argstruct.verbose {println!("using size {}x{}", size.0, size.1);};
+        if argstruct.verbose { println!("using size {}x{}", size.0, size.1); };
         (
             size,
             {
@@ -53,20 +53,23 @@ pub fn find_largest_resolution(imgs: &Vec<String>,
     }
 }
 
-fn largest_size(imgs: &Vec<String>, argstruct: &args::ParsedArgs) -> (u32, u32) {
+fn largest_size(imgs: &Vec<String>,
+                argstruct: &args::ParsedArgs)
+                -> (u32, u32) {
+
     // this first map gathers all image dimensions possible,
     // on error it will output a (0,0) tuple
-    if argstruct.verbose {println!("checking {} images", imgs.len())};
+    if argstruct.verbose { println!("checking {} images", imgs.len()) };
     imgs.iter().map(|img_name| {
-        if argstruct.verbose {print!("checking {}...", img_name)};
+        if argstruct.verbose { print!("checking {}...", img_name) };
         let image_in = image::image_dimensions(img_name);
         match image_in {
             Ok(image_good) => {
-                if argstruct.verbose {println!("good! got {:?}", image_good);}
+                if argstruct.verbose { println!("good! got {:?}", image_good); }
                 image_good
             },
             Err(image_bad) => {
-                if argstruct.verbose {println!("err: {}", image_bad.to_string());}
+                if argstruct.verbose { println!("err: {}", image_bad.to_string()); }
                 (0, 0)
             }
         }
@@ -84,9 +87,11 @@ fn largest_size(imgs: &Vec<String>, argstruct: &args::ParsedArgs) -> (u32, u32) 
 }
 
 // create semi-flattened array from image
-pub fn open_image<'a,'b>(img: &'a String,
+pub fn open_image<'a>(img: &'a String,
                       size: &'a(u32, u32),
-                      argstruct: &'b args::ParsedArgs) -> Result<Vec<(u8, u8, u8)>, String> {
+                      argstruct: &'a args::ParsedArgs)
+                      -> Result<Vec<(u8, u8, u8)>, String> {
+
     // try opening image
     if argstruct.verbose { println!("opening img {}", img); }
     let img_object = image::open(img);
@@ -115,7 +120,9 @@ pub fn open_image<'a,'b>(img: &'a String,
 // writes out semi-flattened array
 pub fn write_image(size: (u32, u32),
                    data: Vec<(u8, u8, u8)>,
-                   argstruct: Arc<args::ParsedArgs>) -> Result<(), String> {
+                   argstruct: Arc<args::ParsedArgs>)
+                   -> Result<(), String> {
+
     if argstruct.verbose { println!("writing out {}", argstruct.output.as_ref().unwrap()); }
 
     // flatten array from (u8, u8, u8) to u8, u8, u8

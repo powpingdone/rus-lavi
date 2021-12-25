@@ -28,7 +28,8 @@ fn main() {
 }
 
 // Parse out all images that are not arguments
-fn parse_images(argstrs: &mut Vec<String>) -> Vec<String> {
+fn parse_images(argstrs: &mut Vec<String>)
+                -> Vec<String> {
     let mut imgs: Vec<String> = Vec::new();
     let mut rems: Vec<usize> = Vec::new();
     let mut hit_double_hyphen = false;

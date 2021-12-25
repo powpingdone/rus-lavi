@@ -13,7 +13,9 @@ pub struct ParsedArgs {
 
 
 // parse out args
-pub fn arg_parse(parsed: Vec<String>) -> Arc<ParsedArgs> {
+pub fn arg_parse(parsed: Vec<String>)
+                 -> Arc<ParsedArgs> {
+
     let mut args = ParsedArgs {
         output: None,
         verbose: false,
@@ -38,7 +40,7 @@ pub fn arg_parse(parsed: Vec<String>) -> Arc<ParsedArgs> {
                         }
                         thread_num
                     },
-                    "--" => (),
+                    "--" => break,
                     _ => panic!("invalid arg \"{}\" parsed", tester),
                 },
             _ => ()
